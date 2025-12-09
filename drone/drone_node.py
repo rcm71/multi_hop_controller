@@ -3,11 +3,13 @@ from rclpy.node import Node
 import cv2
 import numpy as np
 from cv_bridge import CvBridge
+from tf2_ros import Buffer, TransformListener
 from geometry_msgs.msg import Point, Vector3
 from drone_msgs.msg import DroneStatus
 from sensor_msgs.msg import LaserScan, Image
 import random
 import time
+import math
 
 class DroneNode(Node):
 
@@ -17,6 +19,8 @@ class DroneNode(Node):
         self.id = drone_id
         self.bridge = CvBridge()
         self.blob_position = None
+        self.tf_buffer = Buffer()
+        self.tf_listener = TransformListener(self.tf_buffer, self)
 
         # Initializing the publisher, this is what broadcasts 
         # the variables of the drone itself
@@ -65,14 +69,14 @@ class DroneNode(Node):
         msg = DroneStatus()
         msg.id = self.id
 
-        # Example: fake data for simulation for position
+        # Example: hard coded for simulation for position
         msg.position = Point(
             x=random.uniform(0, 50),
             y=random.uniform(0, 50),
             z=random.uniform(5, 20)
         )
 
-        # Example: fake data for simulation for velocity
+        # Example: hard coded for simulation for velocity
         msg.velocity = Vector3(
             x=0.1, y=0.0, z=0.0
         )
@@ -106,9 +110,10 @@ class DroneNode(Node):
 
     # The camera feed is used for detecting simple visual obstacles (like a blue object).
     def camera_callback(self, msg):
-        self.blob_position = detect_blue_blob(self, msg)
+        self.blob_position = detect_blue_blob(msg)
 
     def collision_check(self):
+        # These values are guesses
         if self.front_distance < 1.0:
             self.get_logger().warn("LIDAR obstacle!")
 
@@ -125,7 +130,7 @@ class DroneNode(Node):
         # Convert BGR → HSV
         hsv = cv2.cvtColor(cv_image, cv2.COLOR_BGR2HSV)
 
-        # Blue color range (tweak if needed)
+        # Blue color range (hard coded for now)
         lower_blue = np.array([100, 120, 70])
         upper_blue = np.array([140, 255, 255])
 
@@ -154,6 +159,26 @@ class DroneNode(Node):
         cy = int(M["m01"] / M["m00"])
 
         return (cx, cy)
+
+    def check_tf_obstacle(self):
+        try:
+            # look up transform FROM this drone TO drone_2
+            transform = self.tf_buffer.lookup_transform(
+                f"drone_{self.id}/base_link",
+                "drone_2/base_link",
+                rclpy.time.Time()
+            )
+
+            dx = transform.transform.translation.x
+            dy = transform.transform.translation.y
+            dz = transform.transform.translation.z
+
+            distance = math.sqrt(dx*dx + dy*dy + dz*dz)
+            return distance
+
+        except Exception:
+            # transform not available—maybe drone isn't broadcasting
+            return float("inf")
 
 def main():
     rclpy.init()
