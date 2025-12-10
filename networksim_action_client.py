@@ -41,13 +41,15 @@ class NetworkSimActionClient:
         if self.on_success_callback:
             self.on_success_callback(self.message, result)
 
+def success_callback(message, result):
+    self.get_logger().info(f'MESSAGE {message} RECIEVED BY {result}')
 
 def main(args=None):
     rclpy.init(args=args)
 
-    action_client = NetworkSimActionClient()
+    action_client = NetworkSimActionClient(None, 'drone_1')
 
-    action_client.send_goal('drone_1')
+    action_client.send_message('Message!', success_callback)
 
     rclpy.spin(action_client)
 
