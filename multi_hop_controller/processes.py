@@ -46,10 +46,12 @@ def main():
 	rclpy.init(args=None)
 	controllers = []
 	executor = rclpy.executors.MultiThreadedExecutor()
+	count = 1
 	for spot in spots:
-	    control = drc.OffboardControl(spot)
+	    control = drc.OffboardControl(spot, count)
 	    controllers.append(control)
 	    executor.add_node(control)
+	    count += 1
 	try:
 	    executor.spin()
 	except KeyboardInterrupt:
