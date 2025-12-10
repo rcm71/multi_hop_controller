@@ -63,6 +63,7 @@ class NetworkSimActionServer(Node):
                 drones_reached.append(drone)
 
         goal_handle.succeed()
+        result.drones_reached = drones_reached
         self.get_logger().info(f'{sender_id} COMPLETE')
         return result    
 
