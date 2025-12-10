@@ -116,6 +116,10 @@ class OffboardControl(Node):
         self.failsafe = False
         self.current_state = "IDLE"
         self.last_state = self.current_state
+        
+        self.desiredx = 0
+        self.desiredy = 0
+        self.desiredz = 0
 
 
     def arm_message_callback(self, msg):
@@ -254,8 +258,8 @@ class OffboardControl(Node):
             # Publish offboard control modes
             offboard_msg = OffboardControlMode()
             offboard_msg.timestamp = int(Clock().now().nanoseconds / 1000)
-            offboard_msg.position = False
-            offboard_msg.velocity = True
+            offboard_msg.position = True
+            offboard_msg.velocity = False
             offboard_msg.acceleration = False
             self.publisher_offboard_mode.publish(offboard_msg)            
 
@@ -268,12 +272,12 @@ class OffboardControl(Node):
             # Create and publish TrajectorySetpoint message with NaN values for position and acceleration
             trajectory_msg = TrajectorySetpoint()
             trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
-            trajectory_msg.velocity[0] = velocity_world_x
-            trajectory_msg.velocity[1] = velocity_world_y
-            trajectory_msg.velocity[2] = self.velocity.z
-            trajectory_msg.position[0] = float('nan')
-            trajectory_msg.position[1] = float('nan')
-            trajectory_msg.position[2] = float('nan')
+            trajectory_msg.velocity[0] = float('nan')
+            trajectory_msg.velocity[1] = float('nan')
+            trajectory_msg.velocity[2] = float('nan')
+            trajectory_msg.position[0] = self.desiredx
+            trajectory_msg.position[1] = self.desiredy
+            trajectory_msg.position[2] = self.desiredz
             trajectory_msg.acceleration[0] = float('nan')
             trajectory_msg.acceleration[1] = float('nan')
             trajectory_msg.acceleration[2] = float('nan')

@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import networkx as nx
-import matplotlib.pyplot as plt
 import numpy as np
+# ros hates matplot
+#import matplotlib.plot as plt
 from itertools import combinations
 
 
@@ -55,17 +56,13 @@ def get_destinations():
             except ValueError:
                 print("Invalid input. Please enter a numerical value for y.")
 
-        # Store the destination data
-        destination = {
-            "name": name,
-            "x": x,
-            "y": y
-        }
-        destinations.append(destination)
-        print(f"'{name}' added with coordinates ({x}, {y}).")
-        print("-" * 35)
+    # Store the destination data
+    destination = Destination( x, y, name)
+    destinations.append(destination)
+    print(f"'{name}' added with coordinates ({x}, {y}).")
+    print("-" * 35)
 
-        return destinations
+    return destinations
 
 
 # to have our mesh be springy, we use a force directed graph
@@ -172,27 +169,26 @@ def create_force_graph(destinations, max_tension, max_iter, snap_radius):
     return final_positions
 
 
-def draw(graph, core_names, pos):      
-    # debug visualize
-    # set logic lazines to get hard vs dynamic drones
-    all_nodes_set = set(graph.nodes())
-    core_nodes_set = set(core_names)
-    hop_nodes_final = list(all_nodes_set - core_nodes_set)
-    plt.figure(figsize=(10,8))
-    
-    nx.draw_networkx_nodes(graph, pos, 
-        nodelist=core_names, 
-        node_size=1200, 
-        node_color='skyblue', 
-        label='Destination Nodes')
+#def draw(graph, core_names, pos):      
+#    # debug visualize
+#    # set logic lazines to get hard vs dynamic drones
+ #   all_nodes_set = set(graph.nodes())
+ #   core_nodes_set = set(core_names)
+ #   hop_nodes_final = list(all_nodes_set - core_nodes_set)
+ #   plt.figure(figsize=(10,8))
+ ##   
+  #  nx.draw_networkx_nodes(graph, pos, 
+  #      nodelist=core_names, 
+  #      node_color='skyblue', 
+  #      label='Destination Nodes')
         
-    nx.draw_networkx_nodes(graph, pos, 
-        nodelist=hop_nodes_final, 
-        node_size=400, 
-        node_color='lightcoral', 
-        label='Intermediary Nodes')
-    nx.draw_networkx_edges(graph, pos, edge_color='gray', width=1.5)
-    nx.draw_networkx_labels(graph, pos, font_size=12, font_weight='bold')
+#    nx.draw_networkx_nodes(graph, pos, 
+#        nodelist=hop_nodes_final, 
+#        node_size=400, 
+#        node_color='lightcoral', 
+#        label='Intermediary Nodes')
+#    nx.draw_networkx_edges(graph, pos, edge_color='gray', width=1.5)
+#    nx.draw_networkx_labels(graph, pos, font_size=12, font_weight='bold')
             
 
     plt.title(f"Dynamic Force-Directed Graph (Final State after {i+1} iterations)")
