@@ -1,27 +1,30 @@
 import rclpy
 from rclpy.action import ActionClient
-from rclpy.node import Node
 from multi_hop_interfaces.action import NetworkSimulator
 
 
-class NetworkSimActionClient(Node):
+class NetworkSimActionClient:
 
-    def __init__(self, name):
-        super().__init__(f'networksim_client_{name}')
+    def __init__(self, parent_node, name):
+        self.node = parent_node
         self.name = name
         self._action_client = ActionClient(self, NetworkSimulator, 'networksimulator')
+        self.on_success_callback = None
 
-    def send_message(self):
+    def send_message(self, message, callback):
         if not self._action_client.wait_for_server(timeout_sec=10.0):
             self.get_logger().warn('Network server not available')
             return
+
+        self.message = message
+        self.on_success_callback = callback
 
         goal_msg = NetworkSimulator.Goal()
         goal_msg.sender_id = self.name
 
         self.get_logger().info(f'SENDING MESSAGE FROM {self.name}')
 
-        self._send_goal_future = self._action_client.send_goal_asymc(goal_msg)
+        self._send_goal_future = self._action_client.send_goal_async(goal_msg)
         self._send_goal_future.add_done_callback(self.goal_response_callback)
 
     def goal_response_callback(self, future):
@@ -35,8 +38,8 @@ class NetworkSimActionClient(Node):
 
     def get_result_callback(self, future):
         result = future.result().result
-        self.get_logger().info(f'RESULT: {result}')
-        rclpy.shutdown()
+        if self.on_success_callback:
+            self.on_success_callback(self.message, result)
 
 
 def main(args=None):
