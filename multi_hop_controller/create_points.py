@@ -33,7 +33,8 @@ def get_destinations():
 
         # Check for the exit condition
         if name.lower() == 'done':
-            break
+            print(destinations)
+            return destinations
         elif not name:
             print("Name cannot be empty. Please try again. Name it 'done' if you are")
             continue
@@ -56,11 +57,11 @@ def get_destinations():
             except ValueError:
                 print("Invalid input. Please enter a numerical value for y.")
 
-    # Store the destination data
-    destination = Destination( x, y, name)
-    destinations.append(destination)
-    print(f"'{name}' added with coordinates ({x}, {y}).")
-    print("-" * 35)
+        # Store the destination data
+        destination = Destination(x, y, name)
+        destinations.append(destination)
+        print(f"'{name}' added with coordinates ({x}, {y}).")
+        print("-" * 35)
 
     return destinations
 

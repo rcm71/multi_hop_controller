@@ -5,7 +5,7 @@
 # Import the subprocess and time modules
 import subprocess
 import time
-import .create_points as creep 
+import create_points as creep 
 
 def main():
 	# List of commands to run
@@ -26,8 +26,8 @@ def main():
 	spots = creep.create_force_graph(dest, MAX_TENSION, MAX_ITER, MAX_RADIUS)
 	count = 0
 	for spot in spots:
-		commands.append(f"PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE='{count},{count}' PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i {count}")
-		count += count
+		commands.append(f"PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE='{count},{count}' PX4_SIM_MODEL=gz_x500 ~/PX4-Autopilot/build/px4_sitl_default/bin/px4 -i {count}")
+		count += 1
 
 
 	# Loop through each command in the list
