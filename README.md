@@ -18,4 +18,7 @@ source /opt/ros/humble/setup.bash
 echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc
 cd ~
 git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-bash ./PX4-Autopilot/Tools/setup/ubuntu.sh 
+bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
+END
+3. Reboot the VM before proceeding
+4. Run the following bash script
