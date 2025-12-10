@@ -96,6 +96,14 @@ class OffboardControl(Node):
             self.arm_message_callback,
             qos_profile,
         )
+        
+        # listned to where to go
+        self.pos_sub = self.create_subscription(
+            TrajectorySetpoint,
+            prefix+"/position_command",
+            self.pos_callback,
+            qos_profile=qos_profile,
+        )
 
         # --- Publishers ----------------------------------------------------
         self.publisher_offboard_mode = self.create_publisher(
@@ -163,6 +171,15 @@ class OffboardControl(Node):
     # ----------------------------------------------------------------------
     # Subscriptions callbacks
     # ----------------------------------------------------------------------
+    
+
+    def pos_callback(self, msg):
+        self.desired_position[0] = msg.position[0]
+        self.desired_position[1] = msg.position[1]
+        self.arm_message = True
+        #self.get_logger().info(f"recv destination")
+
+
 
     def arm_message_callback(self, msg: Bool):
         self.arm_message = msg.data
@@ -367,7 +384,7 @@ class OffboardControl(Node):
 
         self.publisher_trajectory.publish(traj)
 
-    # lol rory did not do this shit fyi - rory
+
     # API to set a new position setpoint (x, y, z, yaw)
     def goto_position(self, x: float, y: float, z: float, yaw: float):
         """

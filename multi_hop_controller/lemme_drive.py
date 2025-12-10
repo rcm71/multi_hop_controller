@@ -8,6 +8,13 @@ from rclpy.clock import Clock
 from std_msgs.msg import Bool
 from px4_msgs.msg import TrajectorySetpoint
 
+from rclpy.qos import (
+    QoSProfile,
+    QoSReliabilityPolicy,
+    QoSDurabilityPolicy,
+    QoSHistoryPolicy,
+)
+
 
 # ay lemme drive da boat
 class Lemme_Drive(Node):
@@ -17,20 +24,27 @@ class Lemme_Drive(Node):
         self.id = drone_id
         self.prefix = f"/px4_{drone_id}"
         
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            durability=QoSDurabilityPolicy.TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1,
+        )
+        
         
         self.arm_pub = self.create_publisher(
             Bool,
             self.prefix + "/arm_message",
-            1
+            qos_profile=qos_profile,
         )
         
         self.pos_pub = self.create_publisher(
             TrajectorySetpoint,
-            self.prefix + "/postion_command",
-            10
+            self.prefix + "/position_command",
+            qos_profile=qos_profile,
         )
         
-        self.command_timer = self.create_timer(5.0, self.command_timer_callback)
+        self.command_timer = self.create_timer(1, self.command_timer_callback)
         
         # send arm
         self.arm_timer = self.create_timer(2.0, self.send_arm_trigger)
@@ -48,16 +62,16 @@ class Lemme_Drive(Node):
         traj_msg.timestamp = int(Clock().now().nanoseconds / 1000)
         
         # head on over chappie
-        traj_msg.position[0] = float(spot.x)
-        traj_msg.position[1] = float(spot.y)
+        traj_msg.position[0] = float(self.spot.x)
+        traj_msg.position[1] = float(self.spot.y)
         traj_msg.position[2] = 0.0
         traj_msg.yaw = 0.0
         
         # I DOOOOONT CAAAHE
         traj_msg.velocity[0] = traj_msg.velocity[1] = traj_msg.velocity[2] = float("nan")
         traj_msg.acceleration[0] = traj_msg.acceleration[1] = traj_msg.acceleration[2] = float("nan")
-        
-        self.pos_cmd_pub.publish(traj_msg)
+        #self.get_logger().info(f"sent msg {self.id}")
+        self.pos_pub.publish(traj_msg)
    
    
 

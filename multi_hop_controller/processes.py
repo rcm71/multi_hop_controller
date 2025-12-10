@@ -50,7 +50,9 @@ def main():
 	drivers = []
 	executor = rclpy.executors.MultiThreadedExecutor()
 	count = 1
+
 	for spot in spots:
+	    print(spot)
 	    control = drc.OffboardControl(spot, count)
 	    controllers.append(control)
 	    executor.add_node(control)
