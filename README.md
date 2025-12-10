@@ -22,3 +22,22 @@ bash ./PX4-Autopilot/Tools/setup/ubuntu.sh
 END
 3. Reboot the VM before proceeding
 4. Run the following bash script
+#!/bin/bash
+cd ~
+git clone https://github.com/eProsima/Micro-XRCE-DDS-Agent.git
+cd Micro-XRCE-DDS-Agent/
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
+sudo ldconfig /usr/local/lib/
+mkdir -p ~/px4_ros_ws/src
+cd ~/px4_ros_ws/src
+git clone https://github.com/PX4/px4_msgs.git 
+colcon build
+source install/local_setup.bash
+cd ~/PX4-Autopilot
+make px4_sitl gz_x500
+5. At this point you should be fully setup to run ROS and our scripts
+6. If you are struggling to get this working, Rory can provide the image file for a working VM Setup (For ARM CPUs not x86)
