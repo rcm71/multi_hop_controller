@@ -19,11 +19,62 @@ class Destination():
 # end Destination()
 
 
+def get_destinations():
+    # yo ngl wasn't tryna to write my 23049234th command line interface.
+    destinations = []
+    print("--- Destination Input Program ---")
+    print("Enter 'done' for the destination name when finished.")
+    print("-" * 35)
+
+    while True:
+        # Get the destination name
+        name = input("Enter destination name: ").strip()
+
+        # Check for the exit condition
+        if name.lower() == 'done':
+            break
+        elif not name:
+            print("Name cannot be empty. Please try again. Name it 'done' if you are")
+            continue
+
+        # Get the X coordinate
+        while True:
+            try:
+                x_input = input(f"Enter x-coordinate for {name}: ").strip()
+                x = float(x_input)
+                break
+            except ValueError:
+                print("Invalid input. Please enter a numerical value for x.")
+
+        # Get the Y coordinate
+        while True:
+            try:
+                y_input = input(f"Enter y-coordinate for {name}: ").strip()
+                y = float(y_input)
+                break
+            except ValueError:
+                print("Invalid input. Please enter a numerical value for y.")
+
+        # Store the destination data
+        destination = {
+            "name": name,
+            "x": x,
+            "y": y
+        }
+        destinations.append(destination)
+        print(f"'{name}' added with coordinates ({x}, {y}).")
+        print("-" * 35)
+
+        return destinations
+
+
 # to have our mesh be springy, we use a force directed graph
 # The thinking behind this is, given a set of points, create a
 # force directed graph but when we exceed max tension (bad comms)
 # we break the edge, and insert an intermediary (new drone).
 # basically we run this bad boy to get where our drones should be going
+
+# returns a dict{name, (x,y)}
 def create_force_graph(destinations, max_tension, max_iter, snap_radius):
     
     # make graph
@@ -113,7 +164,15 @@ def create_force_graph(destinations, max_tension, max_iter, snap_radius):
                 print(f'Added new node {new_node} for {u}<->{v}')
                 new_node_count += 1
 
-            
+    # return dict of (name, coord)
+    final_positions = {}
+    for node, coords in pos.items():
+        final_positions[node] = coords.tolist() 
+        
+    return final_positions
+
+
+def draw(graph, core_names, pos):      
     # debug visualize
     # set logic lazines to get hard vs dynamic drones
     all_nodes_set = set(graph.nodes())
