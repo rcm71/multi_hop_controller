@@ -178,6 +178,10 @@ class OffboardControl(Node):
         y = msg.position[1]
         z = msg.position[2]
         yaw = self.desired_position[3]
+
+        if z == 0.0:
+            self.get_logger().warn(f"Ignoring position_command with z=0: {msg.position}")
+            return
         
         self.goto_position(x, y, z, yaw)
         
