@@ -166,7 +166,7 @@ class OffboardControl(Node):
 
         # Desired position setpoint: [x, y, z, yaw]
         # Initialize to some safe default (e.g., hover at (0,0,5m,0rad))
-        self.desired_position = np.array([spot.x, spot.y, 5.0, 0.0], dtype=float)
+        self.desired_position = np.array([spot.x, spot.y, -5.0, 0.0], dtype=float)
 
     # ----------------------------------------------------------------------
     # Subscriptions callbacks
@@ -176,6 +176,7 @@ class OffboardControl(Node):
     def pos_callback(self, msg):
         self.desired_position[0] = msg.position[0]
         self.desired_position[1] = msg.position[1]
+        self.desired_position[2] = -msg.position[2]
         self.arm_message = True
         #self.get_logger().info(f"recv destination")
 
@@ -393,6 +394,8 @@ class OffboardControl(Node):
         This just updates the internal setpoint; the cmdloop_callback
         actually publishes it periodically while offboardMode is True.
         """
+        #fix for falling down need to convert to negative
+        z_ned = -z_up
         self.desired_position = np.array([x, y, z, yaw], dtype=float)
         self.get_logger().info(
             f"New position setpoint: x={x}, y={y}, z={z}, yaw={yaw}"
