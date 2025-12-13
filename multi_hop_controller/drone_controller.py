@@ -51,6 +51,7 @@ from px4_msgs.msg import TrajectorySetpoint
 from px4_msgs.msg import VehicleStatus
 from px4_msgs.msg import VehicleAttitude
 from px4_msgs.msg import VehicleCommand
+from px4_msgs.msg import VehicleLocalPosition
 from std_msgs.msg import Bool
 from geometry_msgs.msg import Twist, Vector3
 
@@ -84,12 +85,22 @@ class OffboardControl(Node):
             qos_profile,
         )
 
+        self.local_pos_sub = self.create_subscription(
+            VehicleLocalPosition,
+            prefix + "/fmu/out/vehicle_local_position",
+            self.local_position_callback,
+            qos_profile,
+        )
+
+        self.current_position = np.zeros(3)  # x, y, z (NED)
+        self.current_yaw = 0.0
+
         # Velocity teleop removed for position-based control
-        self.offboard_velocity_sub = self.create_subscription(
-            Twist,
-            '/offboard_velocity_cmd',
-            self.offboard_velocity_callback,
-            qos_profile)
+        # self.offboard_velocity_sub = self.create_subscription(
+        #     Twist,
+        #     '/offboard_velocity_cmd',
+        #     self.offboard_velocity_callback,
+        #     qos_profile)
 
         self.attitude_sub = self.create_subscription(
             VehicleAttitude,
@@ -385,6 +396,10 @@ class OffboardControl(Node):
     # ----------------------------------------------------------------------
     def cmdloop_callback(self):
 
+        if not self.offboardMode:
+            return
+
+        self.state_offboard()
         # 1) Publish OffboardControlMode indicating position control
         offboard_msg = OffboardControlMode()
         offboard_msg.timestamp = int(Clock().now().nanoseconds / 1000)
@@ -434,16 +449,17 @@ class OffboardControl(Node):
         )
 
     def start_hover(self):
-        # self.hover_position = self.current_position
+        self.hover_position = self.current_position.copy()
+        self.hover_yaw = self.current_yaw
         self.offboard_behavior = "HOVER"
 
     def publish_hover_setpoint(self):
         self.publish_position_setpoint(
-        x=self.hover_position.x,
-        y=self.hover_position.y,
-        z=self.hover_position.z,
-        yaw=self.hover_yaw
-    )
+            x=self.hover_position.x,
+            y=self.hover_position.y,
+            z=self.hover_position.z,
+            yaw=self.hover_yaw
+        )
 
     def publish_goto_setpoint(self):
         if self.desired_position is None:
@@ -454,16 +470,53 @@ class OffboardControl(Node):
             y=self.desired_position[1],
             z=self.desired_position[2],
             yaw=self.desired_position[3],
-    )
+        )
 
     def publish_land_setpoint(self):
-        z = self.current_position.z + 0.05  # descend slowly in NED
+        z = self.current_position[2] + 0.05  # NED: increase z → go down
+
         self.publish_position_setpoint(
-            x=self.current_position.x,
-            y=self.current_position.y,
+            x=self.current_position[0],
+            y=self.current_position[1],
             z=z,
-            yaw=self.current_yaw
+            yaw=self.current_yaw,
         )
+
+    def publish_position_setpoint(self, x: float, y: float, z: float, yaw: float):
+        traj = TrajectorySetpoint()
+        traj.timestamp = int(Clock().now().nanoseconds / 1000)
+
+        traj.position[0] = float(x)
+        traj.position[1] = float(y)
+        traj.position[2] = float(z)
+
+        traj.velocity[0] = float("nan")
+        traj.velocity[1] = float("nan")
+        traj.velocity[2] = float("nan")
+
+        traj.acceleration[0] = float("nan")
+        traj.acceleration[1] = float("nan")
+        traj.acceleration[2] = float("nan")
+
+        traj.yaw = float(yaw)
+        traj.yawspeed = 0.0
+
+        self.publisher_trajectory.publish(traj)
+
+    def local_position_callback(self, msg: VehicleLocalPosition):
+        self.current_position[0] = msg.x
+        self.current_position[1] = msg.y
+        self.current_position[2] = msg.z
+
+    def publish_offboard_control_mode(self):
+        msg = OffboardControlMode()
+        msg.timestamp = int(Clock().now().nanoseconds / 1000)
+        msg.position = True
+        msg.velocity = False
+        msg.acceleration = False
+        msg.attitude = False
+        msg.body_rate = False
+        self.publisher_offboard_mode.publish(msg)
 
 
 def main(args=None):
