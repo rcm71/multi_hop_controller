@@ -591,7 +591,7 @@ class OffboardControl(Node):
     # Initializes the ROS node
     # Node name = minimal_publisher
     # This name appears in ros2 node list
-    def __init__(self):
+    def __init__(self, spot, count):
         super().__init__('minimal_publisher')
 
         # QoS profiles
