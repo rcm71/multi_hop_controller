@@ -647,12 +647,20 @@ class OffboardControl(Node):
             'fmu/in/trajectory_setpoint', 
             qos_profile_pub
         )
+
+        self.vehicle_command_publisher = self.create_publisher(
+            VehicleCommand,
+            'fmu/in/vehicle_command',
+            qos_profile_pub
+        )
         
         # Creates a timer that calls cmdloop_callback() at 50 Hz.
         # PX4 requires OffboardControlMode at > 2 Hz, and TrajectorySetpoint at > 2 Hz
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
         self.dt = timer_period
+
+        self.state_timer = self.create_timer(0.2, self.state_machine_callback)
 
 
         self.declare_parameter('radius', 10.0)
@@ -672,6 +680,9 @@ class OffboardControl(Node):
         self.omega = self.get_parameter('omega').value
         self.altitude = self.get_parameter('altitude').value
 
+        self.flightCheck = True   # assume healthy unless told otherwise
+        self.failsafe = False
+
     # Called every time PX4 publishes VehicleStatus.
     def vehicle_status_callback(self, msg):
         # TODO: handle NED->ENU transformation
@@ -680,6 +691,8 @@ class OffboardControl(Node):
         # Stores PX4 state so the control loop can react.
         self.nav_state = msg.nav_state
         self.arming_state = msg.arming_state
+        self.flightCheck = msg.pre_flight_checks_pass
+        self.failsafe = msg.failsafe
 
     # Takes off to a fixed altitude (meters)
     def take_off(self):
@@ -692,14 +705,12 @@ class OffboardControl(Node):
         self.get_logger().info("Takeoff command sent")
 
     def enter_offboard(self):
-        self.myCnt = 0
         # VEHICLE_CMD_DO_SET_MODE: param1 = base mode, param2 = custom mode
         self.publish_vehicle_command(
             VehicleCommand.VEHICLE_CMD_DO_SET_MODE,
             1.0,
             6.0,
         )
-        self.offboardMode = True
 
     # Arms the vehicle
     def arm(self):
@@ -710,7 +721,21 @@ class OffboardControl(Node):
         self.get_logger().info("Arm command sent")
 
     
+    def publish_vehicle_command(self, command: int, param1: float = 0.0, param2: float = 0.0, param7: float = 0.0):
+        msg = VehicleCommand()
+        msg.command = command
+        msg.param1 = float(param1)
+        msg.param2 = float(param2)
+        msg.param7 = float(param7)
 
+        msg.target_system = 1
+        msg.target_component = 1
+        msg.source_system = 1
+        msg.source_component = 1
+        msg.from_external = True
+        msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
+
+        self.vehicle_command_publisher.publish(msg)
 
 
     # The heart of OFFBOARD
@@ -726,9 +751,6 @@ class OffboardControl(Node):
         offboard_msg.velocity=False
         offboard_msg.acceleration=False
         self.publisher_offboard_mode.publish(offboard_msg)
-        self.arm()
-        self.take_off()
-        self.enter_offboard()
 
         # Only send trajectory if PX4 confirms that vehicle is armed, vehicle is already in OFFBOARD
         # This prevents: publishing setpoints too early, PX4 rejecting commands
@@ -745,6 +767,27 @@ class OffboardControl(Node):
 
             # Advances the angle → smooth circular motion.
             self.theta = self.theta + self.omega * self.dt
+
+    def state_machine_callback(self):
+
+        # Wait until PX4 is healthy
+        if not self.flightCheck or self.failsafe:
+            return
+
+        # Step 1: Arm
+        if self.arming_state != VehicleStatus.ARMING_STATE_ARMED:
+            self.arm()
+            return
+
+        # Step 2: Enter OFFBOARD
+        if self.nav_state != VehicleStatus.NAVIGATION_STATE_OFFBOARD:
+            self.enter_offboard()
+            return
+
+        # Once here → DO NOTHING
+        # Hover is handled by cmdloop_callback
+
+    
 
 
 def main(args=None):
